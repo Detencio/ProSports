@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:14-alpine
+    container_name: prosports_postgres
+    environment:
+      POSTGRES_DB: prosports
+      POSTGRES_USER: prosports_user
+      POSTGRES_PASSWORD: prosports_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - prosports_network
+
+  # Redis para caché y sesiones
+  redis:
+    image: redis:7-alpine
+    container_name: prosports_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - prosports_network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: prosports_backend
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://prosports_user:prosports_password@postgres:5432/prosports
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-development-secret-key
+      - PORT=3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - prosports_network
+    command: npm run start:dev
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: prosports_frontend
+    environment:
+      - REACT_APP_API_URL=http://localhost:3001
+      - REACT_APP_SOCKET_URL=ws://localhost:3001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - prosports_network
+    command: npm start
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  prosports_network:
+    driver: bridge 

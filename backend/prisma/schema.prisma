@@ -1,0 +1,380 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Modelo de Usuarios
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      UserRole @default(USER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  teams     TeamMember[]
+  players   Player[]
+  matches   Match[] // Arbitros
+  notifications Notification[]
+
+  @@map("users")
+}
+
+// Roles de usuario
+enum UserRole {
+  ADMIN
+  MANAGER
+  COACH
+  PLAYER
+  USER
+}
+
+// Modelo de Equipos
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  logo        String?
+  founded     Int?
+  city        String?
+  country     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  members     TeamMember[]
+  players     Player[]
+  homeMatches Match[] @relation("HomeTeam")
+  awayMatches Match[] @relation("AwayTeam")
+  tournaments TournamentTeam[]
+
+  @@map("teams")
+}
+
+// Modelo de Miembros del Equipo
+model TeamMember {
+  id       String   @id @default(cuid())
+  userId   String
+  teamId   String
+  role     TeamRole
+  joinedAt DateTime @default(now())
+  leftAt   DateTime?
+
+  // Relaciones
+  user User @relation(fields: [userId], references: [id])
+  team Team @relation(fields: [teamId], references: [id])
+
+  @@unique([userId, teamId])
+  @@map("team_members")
+}
+
+// Roles en el equipo
+enum TeamRole {
+  OWNER
+  MANAGER
+  COACH
+  PLAYER
+  STAFF
+}
+
+// Modelo de Jugadores
+model Player {
+  id          String   @id @default(cuid())
+  userId      String?  // Opcional, puede ser jugador sin cuenta
+  teamId      String?
+  firstName   String
+  lastName    String
+  dateOfBirth DateTime
+  position    Position
+  jerseyNumber Int?
+  height      Float?   // en cm
+  weight      Float?   // en kg
+  nationality String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  user        User?
+  team        Team?
+  statistics  PlayerStatistics[]
+  matchStats  MatchPlayerStats[]
+
+  @@map("players")
+}
+
+// Posiciones de jugador
+enum Position {
+  GOALKEEPER
+  DEFENDER
+  MIDFIELDER
+  FORWARD
+  UTILITY
+}
+
+// Modelo de Torneos
+model Tournament {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  type        TournamentType
+  status      TournamentStatus @default(PLANNED)
+  maxTeams    Int?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  teams       TournamentTeam[]
+  matches     Match[]
+  brackets    Bracket[]
+
+  @@map("tournaments")
+}
+
+// Tipos de torneo
+enum TournamentType {
+  LEAGUE
+  CUP
+  FRIENDLY
+  CHAMPIONSHIP
+}
+
+// Estados del torneo
+enum TournamentStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+// Relación muchos a muchos entre Torneos y Equipos
+model TournamentTeam {
+  id           String @id @default(cuid())
+  tournamentId String
+  teamId       String
+  joinedAt     DateTime @default(now())
+
+  // Relaciones
+  tournament Tournament @relation(fields: [tournamentId], references: [id])
+  team       Team       @relation(fields: [teamId], references: [id])
+
+  @@unique([tournamentId, teamId])
+  @@map("tournament_teams")
+}
+
+// Modelo de Partidos
+model Match {
+  id           String   @id @default(cuid())
+  tournamentId String?
+  homeTeamId   String
+  awayTeamId   String
+  refereeId    String?
+  date         DateTime
+  venue        String?
+  status       MatchStatus @default(SCHEDULED)
+  homeScore    Int? @default(0)
+  awayScore    Int? @default(0)
+  duration     Int? // en minutos
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relaciones
+  tournament   Tournament?
+  homeTeam     Team @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam     Team @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  referee      User?
+  playerStats  MatchPlayerStats[]
+  events       MatchEvent[]
+
+  @@map("matches")
+}
+
+// Estados del partido
+enum MatchStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  POSTPONED
+}
+
+// Modelo de Estadísticas de Jugadores en Partidos
+model MatchPlayerStats {
+  id        String @id @default(cuid())
+  matchId   String
+  playerId  String
+  goals     Int @default(0)
+  assists   Int @default(0)
+  yellowCards Int @default(0)
+  redCards  Int @default(0)
+  minutesPlayed Int @default(0)
+  rating    Float? // Calificación del jugador (1-10)
+  notes     String?
+
+  // Relaciones
+  match  Match  @relation(fields: [matchId], references: [id])
+  player Player @relation(fields: [playerId], references: [id])
+
+  @@unique([matchId, playerId])
+  @@map("match_player_stats")
+}
+
+// Modelo de Eventos del Partido
+model MatchEvent {
+  id        String @id @default(cuid())
+  matchId   String
+  eventType EventType
+  minute    Int
+  playerId  String?
+  teamId    String?
+  description String?
+  createdAt DateTime @default(now())
+
+  // Relaciones
+  match  Match  @relation(fields: [matchId], references: [id])
+  player Player? @relation(fields: [playerId], references: [id])
+  team   Team?  @relation(fields: [teamId], references: [id])
+
+  @@map("match_events")
+}
+
+// Tipos de eventos
+enum EventType {
+  GOAL
+  ASSIST
+  YELLOW_CARD
+  RED_CARD
+  SUBSTITUTION
+  INJURY
+  OTHER
+}
+
+// Modelo de Estadísticas de Jugadores
+model PlayerStatistics {
+  id        String @id @default(cuid())
+  playerId  String
+  season    String // "2023-2024"
+  tournamentId String?
+  matchesPlayed Int @default(0)
+  goals     Int @default(0)
+  assists   Int @default(0)
+  yellowCards Int @default(0)
+  redCards  Int @default(0)
+  minutesPlayed Int @default(0)
+  averageRating Float @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  player     Player     @relation(fields: [playerId], references: [id])
+  tournament Tournament? @relation(fields: [tournamentId], references: [id])
+
+  @@unique([playerId, season, tournamentId])
+  @@map("player_statistics")
+}
+
+// Modelo de Gestión Financiera
+model Financial {
+  id          String @id @default(cuid())
+  teamId      String?
+  tournamentId String?
+  type        FinancialType
+  amount      Float
+  currency    String @default("USD")
+  description String
+  date        DateTime
+  category    FinancialCategory
+  isIncome    Boolean
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relaciones
+  team       Team?
+  tournament Tournament?
+
+  @@map("financial")
+}
+
+// Tipos financieros
+enum FinancialType {
+  TRANSFER
+  SALARY
+  SPONSORSHIP
+  TICKET_SALES
+  MERCHANDISE
+  OTHER
+}
+
+// Categorías financieras
+enum FinancialCategory {
+  REVENUE
+  EXPENSE
+  INVESTMENT
+  DONATION
+}
+
+// Modelo de Notificaciones
+model Notification {
+  id        String @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType
+  isRead    Boolean @default(false)
+  data      Json? // Datos adicionales en formato JSON
+  createdAt DateTime @default(now())
+
+  // Relaciones
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+// Tipos de notificación
+enum NotificationType {
+  MATCH_REMINDER
+  SCORE_UPDATE
+  TEAM_INVITATION
+  TOURNAMENT_UPDATE
+  SYSTEM_ALERT
+  FINANCIAL_UPDATE
+}
+
+// Modelo de Brackets (para torneos de eliminación)
+model Bracket {
+  id           String @id @default(cuid())
+  tournamentId String
+  round        Int
+  matchNumber  Int
+  homeTeamId   String?
+  awayTeamId   String?
+  winnerId     String?
+  matchId      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relaciones
+  tournament Tournament @relation(fields: [tournamentId], references: [id])
+  homeTeam   Team?      @relation(fields: [homeTeamId], references: [id])
+  awayTeam   Team?      @relation(fields: [awayTeamId], references: [id])
+  winner     Team?      @relation(fields: [winnerId], references: [id])
+  match      Match?     @relation(fields: [matchId], references: [id])
+
+  @@map("brackets")
+} 
