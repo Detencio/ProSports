@@ -17,7 +17,7 @@ RUN npm run prisma:generate
 COPY . .
 
 # Exponer puerto
-EXPOSE 3001
+EXPOSE 3000
 
 # Comando para desarrollo
 CMD ["npm", "run", "start:dev"]
@@ -44,7 +44,7 @@ COPY . .
 RUN npm run build
 
 # Exponer puerto
-EXPOSE 3001
+EXPOSE 3000
 
 # Comando para producción
 CMD ["npm", "run", "start:prod"] 

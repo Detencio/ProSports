@@ -38,9 +38,9 @@ services:
       - DATABASE_URL=postgresql://prosports_user:prosports_password@postgres:5432/prosports
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=your-development-secret-key
-      - PORT=3001
+      - PORT=3000
     ports:
-      - "3001:3001"
+              - "3000:3000"
     depends_on:
       - postgres
       - redis
@@ -58,8 +58,8 @@ services:
       dockerfile: Dockerfile
     container_name: prosports_frontend
     environment:
-      - REACT_APP_API_URL=http://localhost:3001
-      - REACT_APP_SOCKET_URL=ws://localhost:3001
+      - REACT_APP_API_URL=http://localhost:3000
+      - REACT_APP_SOCKET_URL=ws://localhost:3000
     ports:
       - "3000:3000"
     depends_on:

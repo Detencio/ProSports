@@ -36,7 +36,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   useEffect(() => {
     if (isAuthenticated && user) {
       // Crear conexión Socket.io
-      const socketUrl = process.env.REACT_APP_SOCKET_URL || 'ws://localhost:3001';
+      const socketUrl = process.env.REACT_APP_SOCKET_URL || 'ws://localhost:3000';
       const newSocket = io(socketUrl, {
         auth: {
           token: localStorage.getItem('authToken'),

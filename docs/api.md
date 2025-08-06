@@ -2,7 +2,7 @@
 
 ## 📋 Información General
 
-- **Base URL**: `http://localhost:3001/api`
+- **Base URL**: `http://localhost:3000/api`
 - **Versión**: 1.0
 - **Formato de respuesta**: JSON
 - **Autenticación**: JWT Bearer Token
@@ -480,7 +480,7 @@ GET /health
 ### Eventos de Notificaciones
 ```javascript
 // Conectar al WebSocket
-const socket = io('http://localhost:3001');
+const socket = io('http://localhost:3000');
 
 // Escuchar notificaciones
 socket.on('notification', (data) => {
@@ -551,7 +551,7 @@ for (const teamName of teams) {
 
 ## 📚 Recursos Adicionales
 
-- [Documentación de Swagger](http://localhost:3001/api/docs)
+- [Documentación de Swagger](http://localhost:3000/api/docs)
 - [Guía de Desarrollo](./development.md)
 - [Arquitectura del Sistema](./architecture.md)
 - [Guía de Despliegue](./deployment.md) 
